@@ -1,0 +1,54 @@
+services:
+  strapi:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: moroccan-store-strapi
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - JWT_SECRET=CbLWICuvcxE7H6Z7Yso6/iZ15tS6hL/hejZN9wPsdfE=
+      - ADMIN_JWT_SECRET=CeUnvJnHfuW0ccTROS7DOl5ga2QxP4P7gi3e7TFA3xA=
+      - API_TOKEN_SALT=kx+Aj8mdPf5RYBgjT9xswdszOC1dhkVTYfhJ75ZqCyo=
+      - APP_KEYS=EohD90g8XMdCT8JNDmncxg==,2YpapkqehPNzrvuSwRCSuA==,g4MROJtC4PKn5i7SFTaP8A==
+      - HOST=0.0.0.0
+      - PORT=1337
+    volumes:
+      - /var/www/moroccan-store/backend:/opt/app
+      - strapi_node_modules:/opt/node_modules
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.strapi.rule=Host(`api.abouoways.ma`)
+      - traefik.http.routers.strapi.tls=true
+      - traefik.http.routers.strapi.entrypoints=websecure
+      - traefik.http.services.strapi.loadbalancer.server.port=1337
+    networks:
+      - root_default
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: moroccan-store-frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.abouoways.ma
+      - NEXT_PUBLIC_STRAPI_URL=https://api.abouoways.ma
+    depends_on:
+      - strapi
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.store.rule=Host(`abouoways.ma`)
+      - traefik.http.routers.store.tls=true
+      - traefik.http.routers.store.entrypoints=websecure
+      - traefik.http.services.store.loadbalancer.server.port=3000
+    networks:
+      - root_default
+
+volumes:
+  strapi_node_modules:
+
+networks:
+  root_default:
+    external: true

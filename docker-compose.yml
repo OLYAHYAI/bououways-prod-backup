@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: moroccan-store-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: strapi_prod
+      POSTGRES_USER: strapi_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - root_default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U strapi_admin -d strapi_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  strapi:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: moroccan-store-strapi
+    restart: unless-stopped
+    environment:
+      # Base
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=1337
+      - PUBLIC_URL=https://api.abouoways.ma
+      
+      # Database PostgreSQL
+      - DATABASE_CLIENT=postgres
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=strapi_prod
+      - DATABASE_USERNAME=strapi_admin
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_SSL=false
+      
+      # Secrets
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET}
+      - API_TOKEN_SALT=${API_TOKEN_SALT}
+      - APP_KEYS=${APP_KEYS}
+    volumes:
+      - /var/www/moroccan-store/backend:/opt/app
+      - strapi_node_modules:/opt/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.strapi.rule=Host(`api.abouoways.ma`)
+      - traefik.http.routers.strapi.tls=true
+      - traefik.http.routers.strapi.entrypoints=websecure
+      - traefik.http.services.strapi.loadbalancer.server.port=1337
+    networks:
+      - root_default
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: moroccan-store-frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.abouoways.ma
+      - NEXT_PUBLIC_STRAPI_URL=https://api.abouoways.ma
+    depends_on:
+      - strapi
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.store.rule=Host(`abouoways.ma`)
+      - traefik.http.routers.store.tls=true
+      - traefik.http.routers.store.entrypoints=websecure
+      - traefik.http.services.store.loadbalancer.server.port=3000
+    networks:
+      - root_default
+
+volumes:
+  strapi_node_modules:
+  postgres_data:
+
+networks:
+  root_default:
+    external: true

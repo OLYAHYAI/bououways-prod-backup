@@ -1,0 +1,38 @@
+# Variables d'environnement (CRITIQUE!)
+.env
+.env.local
+.env.production
+*.env
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Build outputs
+frontend/.next/
+frontend/out/
+backend/build/
+backend/.cache/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+*.sqlite
+*.db
+postgres_data/
+
+# Volumes Docker
+strapi_node_modules/
+
+# Fichiers système
+.DS_Store
+Thumbs. db
+
+# Secrets et tokens
+*.pem
+*.key
+*.cert
